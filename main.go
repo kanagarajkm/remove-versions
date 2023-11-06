@@ -121,12 +121,19 @@ func main() {
 			break
 		}
 		if obj.Err != nil {
-			log.Println("FAILED: LIST with error:", obj.Err)
-			continue
+			log.Fatalln("FAILED: LIST with error:", obj.Err)
+			return
 		}
 		if obj.IsDeleteMarker {
-			log.Println("SKIPPED: DELETE marker object:", object)
-			continue
+			if count == 0 {
+				// If the latest version is a DELETE marker, exit
+				log.Fatalln("Latest version of the object is a DELETE marker")
+				return
+			} else {
+
+				log.Println("SKIPPED: DELETE marker object:", object)
+				continue
+			}
 		}
 		allVersions = append(allVersions, ObjVerInfo{S3Client: s1S3Client, VersionID: obj.VersionID, LastModified: obj.LastModified, ETag: obj.ETag})
 		count = count + 1
@@ -143,8 +150,15 @@ func main() {
 			return
 		}
 		if obj.IsDeleteMarker {
-			log.Println("SKIPPED: DELETE marker object:", object)
-			continue
+			if count == 0 {
+				// If the latest version is a DELETE marker, exit
+				log.Fatalln("Latest version of the object is a DELETE marker")
+				return
+			} else {
+
+				log.Println("SKIPPED: DELETE marker object:", object)
+				continue
+			}
 		}
 		present := false
 		for _, v := range allVersions {
@@ -184,6 +198,7 @@ func main() {
 		reader, err := v.S3Client.GetObject(context.Background(), bucket, object, minio.GetObjectOptions{VersionID: v.VersionID})
 		if err != nil {
 			log.Fatalln(err)
+			return
 		}
 		defer reader.Close()
 
